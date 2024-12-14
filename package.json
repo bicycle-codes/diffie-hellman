@@ -1,15 +1,65 @@
 {
-  "name": "diffie-hellman",
+  "name": "@substrate-system/diffie-hellman",
   "version": "5.0.3",
+  "type": "module",
   "description": "pure js diffie-hellman",
-  "main": "index.js",
-  "browser": "browser.js",
+  "files": [
+    "./dist/*"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./*": {
+      "import": [
+        "./dist/*.js",
+        "./dist/*"
+      ],
+      "require": [
+        "./dist/*.cjs",
+        "./dist/*"
+      ]
+    }
+  },
   "scripts": {
-    "test": "node test.js | tspec"
+    "lint": "eslint \"./**/*.{ts,js}\"",
+    "build-tests": "esbuild test/index.ts --target=es2020 --bundle --keep-names > test/test-bundle.js",
+    "test": "npm run lint && npm run build && npm run build-tests && npm run test-tape-run",
+    "test-tape-run": "cat test/index.html | tape-run --input=html --static=test | tap-spec",
+    "build-cjs": "esbuild src/*.ts --format=cjs --keep-names --tsconfig=tsconfig.build.json --outdir=./dist --out-extension:.js=.cjs --sourcemap",
+    "build-cjs:min": "esbuild src/*.ts --format=cjs --minify --keep-names --tsconfig=tsconfig.build.json --outdir=./dist --out-extension:.js=.min.cjs --sourcemap",
+    "build-esm": "esbuild src/*.ts --format=esm --metafile=dist/meta.json --keep-names --tsconfig=tsconfig.build.json --outdir=./dist --sourcemap && tsc --emitDeclarationOnly --project tsconfig.build.json --outDir dist",
+    "build-esm:min": "esbuild ./src/*.ts --format=esm --keep-names --bundle --tsconfig=tsconfig.build.json --minify --out-extension:.js=.min.js --outdir=./dist --sourcemap",
+    "build-example": "mkdir -p ./public && rm -rf ./public/* && VITE_DEBUG_MODE=staging vite --mode staging --base=\"/repo-name\" build",
+    "build-docs": "typedoc ./src/index.ts",
+    "build": "mkdir -p ./dist && rm -rf ./dist/* && npm run build-cjs && npm run build-esm && npm run build-esm:min && npm run build-cjs:min",
+    "toc": "markdown-toc --maxdepth 3 -i README.md",
+    "preversion": "npm run lint",
+    "version": "npm run toc && auto-changelog -p --template keepachangelog --breaking-pattern 'BREAKING CHANGE:' && git add CHANGELOG.md README.md",
+    "postversion": "git push --follow-tags && npm publish",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "miller-rabin": "^4.0.0"
+  },
+  "devDependencies": {
+    "@substrate-system/tapzero": "^0.10.5",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "auto-changelog": "^2.4.0",
+    "esbuild": "^0.24.0",
+    "eslint": "^8.57.0",
+    "eslint-config-standard": "^17.1.0",
+    "markdown-toc": "^1.2.0",
+    "tap-spec": "^5.0.0",
+    "tape-run": "^11.0.0",
+    "typedoc": "^0.27.0",
+    "typescript": "^5.4.5"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/crypto-browserify/diffie-hellman.git"
+    "url": "https://github.com/substrate-system/diffie-hellman.git"
   },
   "keywords": [
     "diffie",
@@ -18,18 +68,16 @@
     "dh"
   ],
   "author": "Calvin Metcalf",
+  "contributors": [
+		{
+			"name": "Nick Thomas",
+			"email": "nichoth@nichoth.com",
+			"url": "https://nichoth.com/"
+		}
+	],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/crypto-browserify/diffie-hellman/issues"
+    "url": "https://github.com/substrate-system/diffie-hellman/issues"
   },
-  "homepage": "https://github.com/crypto-browserify/diffie-hellman",
-  "dependencies": {
-    "bn.js": "^4.1.0",
-    "miller-rabin": "^4.0.0",
-    "randombytes": "^2.0.0"
-  },
-  "devDependencies": {
-    "tap-spec": "^1.0.1",
-    "tape": "^3.0.1"
-  }
+  "homepage": "https://github.com/substrate-system/diffie-hellman"
 }

@@ -82,7 +82,7 @@ function checkPrime (prime, generator) {
     return error
 }
 
-function DH (prime, generator, malleable) {
+export function DH (prime, generator, malleable) {
     this.setGenerator(generator)
     this.__prime = new BN(prime)
     this._prime = BN.mont(this.__prime)

@@ -1,7 +1,6 @@
+import { DH } from './dh.js'
 const generatePrime = require('./lib/generatePrime')
 const primes = require('./lib/primes.json')
-
-const DH = require('./lib/dh')
 
 export function DiffieHellmanGroup (mod) {
     const prime = new Buffer(primes[mod].prime, 'hex')

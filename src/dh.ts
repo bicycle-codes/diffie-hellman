@@ -1,6 +1,6 @@
 import MillerRabin from 'miller-rabin'
 import BN from './bn.js'
-import primes from './generatePrime.js'
+import primes from './generate-prime.js'
 
 const millerRabin = new MillerRabin()
 const TWENTYFOUR = new BN(24)

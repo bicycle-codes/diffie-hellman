@@ -1,5 +1,5 @@
 {
-  "name": "@substrate-system/diffie-hellman",
+  "name": "@bicycle-codes/diffie-hellman",
   "version": "5.0.3",
   "type": "module",
   "description": "pure js diffie-hellman",
@@ -44,6 +44,7 @@
     "miller-rabin": "^4.0.0"
   },
   "devDependencies": {
+    "@bicycle-codes/randombytes": "^0.0.0",
     "@substrate-system/tapzero": "^0.10.5",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
@@ -69,12 +70,12 @@
   ],
   "author": "Calvin Metcalf",
   "contributors": [
-		{
-			"name": "Nick Thomas",
-			"email": "nichoth@nichoth.com",
-			"url": "https://nichoth.com/"
-		}
-	],
+    {
+      "name": "Nick Thomas",
+      "email": "nichoth@nichoth.com",
+      "url": "https://nichoth.com/"
+    }
+  ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/substrate-system/diffie-hellman/issues"

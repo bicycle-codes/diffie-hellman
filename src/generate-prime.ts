@@ -1,7 +1,4 @@
-const randomBytes = require('randombytes')
-module.exports = findPrime
-findPrime.simpleSieve = simpleSieve
-findPrime.fermatTest = fermatTest
+import { randomBytes } from '@bicycle-codes/randombytes'
 const BN = require('bn.js')
 const TWENTYFOUR = new BN(24)
 const MillerRabin = require('miller-rabin')
@@ -18,6 +15,11 @@ const ELEVEN = new BN(11)
 const FOUR = new BN(4)
 const TWELVE = new BN(12)
 let primes = null
+
+findPrime.simpleSieve = simpleSieve
+findPrime.fermatTest = fermatTest
+
+// module.exports = findPrime
 
 function _getPrimes () {
     if (primes !== null) { return primes }

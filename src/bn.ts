@@ -1,5 +1,5 @@
 // Utils
-function assert (val, msg) {
+function assert (val, msg?) {
     if (!val) throw new Error(msg || 'Assertion failed')
 }
 
@@ -14,14 +14,23 @@ function inherits (ctor, superCtor) {
 }
 
 export class BN {
-    static BN:BN
     static wordSize:number
     negative:number
     words:number|null|number[]
     length:number
     red:null
 
-    static isBN = function isBN (num) {
+    static max (left:BN, right:BN) {
+        if (left.cmp(right) > 0) return left
+        return right
+    }
+
+    static min (left, right) {
+        if (left.cmp(right) < 0) return left
+        return right
+    }
+
+    static isBN = function isBN (num:any):num is BN {
         if (num instanceof BN) {
             return true
         }
@@ -34,9 +43,9 @@ export class BN {
         )
     }
 
-    constructor (number:number|BN, base:number, endian:'le'|'be') {
-        if (BN.isBN(number)) {
-            return number as BN
+    constructor (n:string|BN, base:number, endian:'le'|'be') {
+        if (BN.isBN(n)) {
+            return n
         }
 
         this.negative = 0
@@ -46,31 +55,91 @@ export class BN {
         // Reduction context
         this.red = null
 
-        this._init(number as number, base || 10, endian || 'be')
+        this._init(n, base || 10, endian || 'be')
     }
 
-    _init (number:number, base:number, endian:'le'|'be') {
-        if (typeof number === 'number') {
-            return this._initNumber(number, base, endian)
+    /**
+     * Remove leading `0` from `this`
+     *
+     * @returns {this}
+     */
+    strip ():this {
+        while (this.length > 1 && this.words && this.words[this.length - 1] === 0) {
+            this.length--
         }
-    
-        if (typeof number === 'object') {
-            return this._initArray(number, base, endian)
+
+        return this._normSign()
+    }
+
+    _normSign ():this {
+        // -0 = 0
+        if (this.length === 1 && this.words && this.words[0] === 0) {
+            this.negative = 0
         }
-    
+
+        return this
+    }
+
+    /**
+     * Compare two numbers and return:
+     *   - 1 - if `this` > `num`
+     *   - 0 - if `this` == `num`
+     *   - -1 - if `this` < `num`
+     * @param {BN} num The instance you are comparing
+     * @returns {number}
+     */
+    cmp (num:BN):number {
+        if (this.negative !== 0 && num.negative === 0) return -1
+        if (this.negative === 0 && num.negative !== 0) return 1
+
+        const res = this.ucmp(num)
+        if (this.negative !== 0) return -res | 0
+
+        return res
+    }
+
+    /**
+     * Unsigned comparison
+     * @param {BN} num
+     * @returns {number}
+     */
+    ucmp (num:BN):number {
+        // At this point both numbers have the same sign
+        if (this.length > num.length) return 1
+        if (this.length < num.length) return -1
+
+        let res:number = 0
+        for (let i = this.length - 1; i >= 0; i--) {
+            const a = this.words![i] | 0
+            const b = num.words && num.words[i] | 0
+
+            if (a === b) continue
+            if (a < b!) {
+                res = -1
+            } else if (a > b!) {
+                res = 1
+            }
+
+            break
+        }
+
+        return res
+    }
+
+    _init (n:string|number, base:number|'hex', endian:'le'|'be') {
         if (base === 'hex') {
             base = 16
         }
         assert(base === (base | 0) && base >= 2 && base <= 36)
-    
-        number = number.toString().replace(/\s+/g, '')
+
+        n = n.toString().replace(/\s+/g, '')
         let start = 0
-        if (number[0] === '-') {
+        if (n[0] === '-') {
             start++
             this.negative = 1
         }
-    
-        if (start < number.length) {
+
+        if (start < n.length) {
             if (base === 16) {
                 this._parseHex(number, start, endian)
             } else {
@@ -82,29 +151,127 @@ export class BN {
         }
     }
 
+    _parseHex (number, start, endian:'le'|'be') {
+        // Create possibly bigger array to ensure that it fits the number
+        this.length = Math.ceil((number.length - start) / 6)
+        this.words = new Array(this.length)
+        for (let i = 0; i < this.length; i++) {
+            this.words[i] = 0
+        }
 
-}
+        // 24-bits chunks
+        let off = 0
+        let j = 0
 
+        let w
+        if (endian === 'be') {
+            for (let i = number.length - 1; i >= start; i -= 2) {
+                w = parseHexByte(number, start, i) << off
+                this.words[j] |= w & 0x3ffffff
+                if (off >= 18) {
+                    off -= 18
+                    j += 1
+                    this.words[j] |= w >>> 26
+                } else {
+                    off += 8
+                }
+            }
+        } else {
+            const parseLength = number.length - start
+            for (
+                let i = (parseLength % 2 === 0 ? start + 1 : start);
+                i < number.length;
+                i += 2
+            ) {
+                w = parseHexByte(number, start, i) << off
+                this.words[j] |= w & 0x3ffffff
+                if (off >= 18) {
+                    off -= 18
+                    j += 1
+                    this.words[j] |= w >>> 26
+                } else {
+                    off += 8
+                }
+            }
+        }
 
-BN.max = function max (left, right) {
-    if (left.cmp(right) > 0) return left
-    return right
-}
-
-BN.min = function min (left, right) {
-    if (left.cmp(right) < 0) return left
-    return right
-}
-
-
-let Buffer
-try {
-    if (typeof window !== 'undefined' && typeof window.Buffer !== 'undefined') {
-        Buffer = window.Buffer
-    } else {
-        Buffer = require('buffer').Buffer
+        this._strip()
     }
-} catch (e) {
+
+    _initNumber (number:number, base:number, endian:'le'|'be') {
+        if (number < 0) {
+            this.negative = 1
+            number = -number
+        }
+        if (number < 0x4000000) {
+            this.words = [number & 0x3ffffff]
+            this.length = 1
+        } else if (number < 0x10000000000000) {
+            this.words = [
+                number & 0x3ffffff,
+                (number / 0x4000000) & 0x3ffffff
+            ]
+            this.length = 2
+        } else {
+            assert(number < 0x20000000000000) // 2 ^ 53 (unsafe)
+            this.words = [
+                number & 0x3ffffff,
+                (number / 0x4000000) & 0x3ffffff,
+                1
+            ]
+            this.length = 3
+        }
+
+        if (endian !== 'le') return
+
+        // Reverse the bytes
+        this._initArray(this.toArray(), base, endian)
+    }
+
+    _initArray (number:Uint8Array, _base:number, endian:'le'|'be') {
+        // Perhaps a Uint8Array
+        assert(typeof number.length === 'number')
+
+        if (number.length <= 0) {
+            this.words = [0]
+            this.length = 1
+            return this
+        }
+
+        this.length = Math.ceil(number.length / 3)
+        this.words = new Array(this.length)
+        for (let i = 0; i < this.length; i++) {
+            this.words[i] = 0
+        }
+
+        let w
+        let off = 0
+        if (endian === 'be') {
+            for (let i = number.length - 1, j = 0; i >= 0; i -= 3) {
+                w = number[i] | (number[i - 1] << 8) | (number[i - 2] << 16)
+                this.words[j] |= (w << off) & 0x3ffffff
+                this.words[j + 1] = (w >>> (26 - off)) & 0x3ffffff
+                off += 24
+                if (off >= 26) {
+                    off -= 26
+                    j++
+                }
+            }
+        } else if (endian === 'le') {
+            for (let i = 0, j = 0; i < number.length; i += 3) {
+                w = number[i] | (number[i + 1] << 8) | (number[i + 2] << 16)
+                this.words[j] |= (w << off) & 0x3ffffff
+                this.words[j + 1] = (w >>> (26 - off)) & 0x3ffffff
+                off += 24
+                if (off >= 26) {
+                    off -= 26
+                    j++
+                }
+            }
+        }
+
+        return this._strip()
+    }
 }
 
 BN.prototype._init = function init (number, base, endian) {
@@ -2900,28 +3067,6 @@ BN.prototype.cmp = function cmp (num) {
 
     const res = this.ucmp(num)
     if (this.negative !== 0) return -res | 0
-    return res
-}
-
-// Unsigned comparison
-BN.prototype.ucmp = function ucmp (num) {
-// At this point both numbers have the same sign
-    if (this.length > num.length) return 1
-    if (this.length < num.length) return -1
-
-    let res = 0
-    for (let i = this.length - 1; i >= 0; i--) {
-        const a = this.words[i] | 0
-        const b = num.words[i] | 0
-
-        if (a === b) continue
-        if (a < b) {
-            res = -1
-        } else if (a > b) {
-            res = 1
-        }
-        break
-    }
     return res
 }
 

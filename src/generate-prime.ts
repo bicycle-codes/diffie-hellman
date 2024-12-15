@@ -1,32 +1,32 @@
-const randomBytes = require('randombytes')
-module.exports = findPrime
-findPrime.simpleSieve = simpleSieve
-findPrime.fermatTest = fermatTest
-const BN = require('bn.js')
+import { randomBytes } from '@bicycle-codes/randombytes'
+import BN from 'bn.js'
+import MillerRabin from 'miller-rabin'
 const TWENTYFOUR = new BN(24)
-const MillerRabin = require('miller-rabin')
 const millerRabin = new MillerRabin()
 const ONE = new BN(1)
 const TWO = new BN(2)
 const FIVE = new BN(5)
-const SIXTEEN = new BN(16)
-const EIGHT = new BN(8)
 const TEN = new BN(10)
 const THREE = new BN(3)
-const SEVEN = new BN(7)
 const ELEVEN = new BN(11)
 const FOUR = new BN(4)
-const TWELVE = new BN(12)
-let primes = null
+
+let primes:number[]|null = null
+
+findPrime.simpleSieve = simpleSieve
+findPrime.fermatTest = fermatTest
 
 function _getPrimes () {
-    if (primes !== null) { return primes }
+    if (primes !== null) {
+        return primes
+    }
 
     const limit = 0x100000
-    const res = []
+    const res:number[] = []
     res[0] = 2
     for (let i = 1, k = 3; k < limit; k += 2) {
         const sqrt = Math.ceil(Math.sqrt(k))
+        // eslint-disable-next-line no-var
         for (var j = 0; j < i && res[j] <= sqrt; j++) {
             if (k % res[j] === 0) { break }
         }
@@ -35,6 +35,7 @@ function _getPrimes () {
 
         res[i++] = k
     }
+
     primes = res
     return res
 }
@@ -60,7 +61,7 @@ function fermatTest (p) {
     return TWO.toRed(red).redPow(p.subn(1)).fromRed().cmpn(1) === 0
 }
 
-function findPrime (bits, gen) {
+export function findPrime (bits, gen) {
     if (bits < 16) {
     // this is what openssl does
         if (gen === 2 || gen === 5) {
@@ -101,3 +102,5 @@ function findPrime (bits, gen) {
         }
     }
 }
+
+export default findPrime

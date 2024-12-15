@@ -41,7 +41,9 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "miller-rabin": "^4.0.0"
+    "bn.js": "^5.2.1",
+    "miller-rabin": "^4.0.0",
+    "uint8arrays": "^5.1.0"
   },
   "devDependencies": {
     "@substrate-system/tapzero": "^0.10.5",
